@@ -11,16 +11,16 @@ async function getAddressFromCEP(cep: string) {
 
   function isValidCEP(cep: string) {
     if (cep.length !== 8) {
-      return false; 
+      return false;
     }
-  
+
     for (let i = 0; i < 8; i++) {
       if (cep[i] < '0' || cep[i] > '9') {
-        return false; 
+        return false;
       }
     }
-  
-    return true; 
+
+    return true;
   }
 
   if (!isValidCEP(cep)) {
@@ -32,7 +32,7 @@ async function getAddressFromCEP(cep: string) {
   }
 
   const { logradouro, complemento, bairro, localidade, uf } = result.data;
-  
+
   return {
     logradouro,
     complemento,
@@ -67,36 +67,29 @@ function getFirstAddress(firstAddress: Address): GetAddressResult {
 
 type GetAddressResult = Omit<Address, 'createdAt' | 'updatedAt' | 'enrollmentId'>;
 
-async function createOrUpdateEnrollmentWithAddress(params: CreateOrUpdateEnrollmentWithAddress, res: Response) {
+async function createOrUpdateEnrollmentWithAddress(params: CreateOrUpdateEnrollmentWithAddress) {
   const enrollment = exclude(params, 'address');
   enrollment.birthday = new Date(enrollment.birthday);
   const address = getAddressForUpsert(params.address);
 
-  // TODO - Verificar se o CEP é válido antes de associar ao enrollment. - HECHO?
-
+  // Verificar se o CEP é válido antes de associar ao enrollment.
   function isValidCEP(cep: string) {
-    if (cep.length !== 8) {
-      return false; 
+    if (cep.length !== 8 || !/^\d{8}$/.test(cep)) {
+      return false;
     }
-  
-    for (let i = 0; i < 8; i++) {
-      if (cep[i] < '0' || cep[i] > '9') {
-        return false; 
-      }
-    }
-  
-    return true; 
+    return true;
   }
 
   if (!isValidCEP(address.cep)) {
-    return res.status(400).json({ error: 'CEP inválido' });
+    return { status: 400, body: { error: 'CEP inválido' } };
   }
-
 
   const newEnrollment = await enrollmentRepository.upsert(params.userId, enrollment, exclude(enrollment, 'userId'));
 
-  await addressRepository.upsert(newEnrollment.id, address, address);
+  return { status: 200, body: { message: 'Enrollment criada com sucesso' } };
 }
+
+
 
 function getAddressForUpsert(address: CreateAddressParams) {
   return {
