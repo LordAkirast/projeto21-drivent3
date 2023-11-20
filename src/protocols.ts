@@ -44,4 +44,13 @@ export type InputPaymentBody = {
   cardData: CardPaymentParams;
 };
 
+export type HotelEnrollment = {
+  id: number;
+  name: string;
+  image: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+
 export type PaymentParams = Omit<Payment, 'id' | 'createdAt' | 'updatedAt'>;
