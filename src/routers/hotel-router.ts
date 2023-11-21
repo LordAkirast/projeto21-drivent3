@@ -11,7 +11,7 @@ function getTest() {
   return 'ok'
 }
 hotelRouters
-  //.all('/*', authenticateToken)
+  .all('/*', authenticateToken)
   .get('/', getHotels)
 
 export { hotelRouters };
