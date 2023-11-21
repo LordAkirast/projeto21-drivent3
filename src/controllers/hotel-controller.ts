@@ -7,16 +7,13 @@ import { Prisma } from '@prisma/client';
 import { hotelsService } from '@/services/hotel-service';
 
 export async function getHotels(req: AuthenticatedRequest, res: Response) {
-  console.log('teste')
+  const userId = req.userId;
 
-  await hotelsService.getAllHotels();
+  console.log('teste');
 
- 
-  return res.sendStatus(httpStatus.OK)
+  await hotelsService.getAllHotels(userId); 
 
-  // const enrollmentWithAddress = await enrollmentsService.getOneWithAddressByUserId(userId);
-
-  // return res.status(httpStatus.OK).send(enrollmentWithAddress);
+  return res.sendStatus(httpStatus.OK);
 }
 
 

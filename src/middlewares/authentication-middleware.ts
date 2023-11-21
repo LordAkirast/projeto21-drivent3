@@ -3,6 +3,12 @@ import * as jwt from 'jsonwebtoken';
 import { unauthorizedError } from '@/errors';
 import { authenticationRepository } from '@/repositories';
 
+
+export function extractUserIdFromToken(token: string): number {
+  const { userId } = jwt.verify(token, process.env.JWT_SECRET) as JWTPayload;
+  return userId;
+}
+
 export async function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.header('Authorization');
   if (!authHeader) throw unauthorizedError();
@@ -10,7 +16,7 @@ export async function authenticateToken(req: AuthenticatedRequest, res: Response
   const token = authHeader.split(' ')[1];
   if (!token) throw unauthorizedError();
 
-  const { userId } = jwt.verify(token, process.env.JWT_SECRET) as JWTPayload;
+  const userId = extractUserIdFromToken(token);
 
   const session = await authenticationRepository.findSession(token);
   if (!session) throw unauthorizedError();
@@ -24,3 +30,4 @@ export type AuthenticatedRequest = Request & JWTPayload;
 type JWTPayload = {
   userId: number;
 };
+
