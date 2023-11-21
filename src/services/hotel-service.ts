@@ -8,12 +8,21 @@ import { AddressEnrollment } from '@/protocols';
 import { HotelEnrollment } from '@/protocols';
 import { hotelRepository } from '@/repositories/hotel-repository';
 
-async function getAllHotels(){
+async function getAllHotels(userId: number) {
+  
+  const enrollment = await enrollmentRepository.findEnrollmentByUserId(userId);
 
- const allHotels = hotelRepository.findAllHotels();
+  if (!enrollment) {
+    
+    throw new Error('Usuário não encontrado');
+  }
+
+  // Continue com a lógica para obter todos os hotéis
+  const allHotels = await hotelRepository.findAllHotels();
 
   return allHotels;
 }
+
 
 async function getOneWithAddressByUserId(userId: number): Promise<GetOneWithAddressByUserIdResult> {
   const enrollmentWithAddress = await enrollmentRepository.findWithAddressByUserId(userId);
