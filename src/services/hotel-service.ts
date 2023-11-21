@@ -52,6 +52,7 @@ export type CreateOrUpdateEnrollmentWithAddress = CreateEnrollmentParams & {
   address: CreateAddressParams;
 };
 
-export const enrollmentsService = {
+export const hotelsService = {
+  getAllHotels,
   getOneWithAddressByUserId,
 };

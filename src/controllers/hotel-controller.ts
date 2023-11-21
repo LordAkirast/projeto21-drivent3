@@ -3,14 +3,23 @@ import httpStatus from 'http-status';
 import { AuthenticatedRequest } from '@/middlewares';
 import { enrollmentsService } from '@/services';
 import { CEP } from '@/protocols';
+import { Prisma } from '@prisma/client';
+import { hotelsService } from '@/services/hotel-service';
 
 export async function getHotels(req: AuthenticatedRequest, res: Response) {
+  console.log('teste')
+
+  await hotelsService.getAllHotels();
+
+ 
   return res.status(httpStatus.OK)
 
   // const enrollmentWithAddress = await enrollmentsService.getOneWithAddressByUserId(userId);
 
   // return res.status(httpStatus.OK).send(enrollmentWithAddress);
 }
+
+
 
 export async function postCreateOrUpdateEnrollment(req: AuthenticatedRequest, res: Response) {
   await enrollmentsService.createOrUpdateEnrollmentWithAddress({

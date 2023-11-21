@@ -4,7 +4,14 @@ import { Hotel } from '@prisma/client';
 
 async function findAllHotels() {
   const hotels = await prisma.hotel.findMany();
-  return hotels
+  return hotels;
+}
+
+async function enrollmentVerify(id: number) {
+  const enrollmentCheck = await prisma.enrollment.findFirst({
+    where: { id }
+  })
+  return enrollmentCheck;
 }
 
 async function upsert(
@@ -25,6 +32,7 @@ export type CreateEnrollmentParams = Omit<Enrollment, 'id' | 'createdAt' | 'upda
 export type UpdateEnrollmentParams = Omit<CreateEnrollmentParams, 'userId'>;
 
 export const hotelRepository = {
+  enrollmentVerify,
   findAllHotels,
   upsert,
 };
