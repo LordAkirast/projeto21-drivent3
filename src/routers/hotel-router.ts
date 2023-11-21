@@ -8,11 +8,10 @@ const hotelRouters = Router();
 
 function getTest() {
   console.log('tudo ok')
-  return httpStatus.OK
+  return 'ok'
 }
-//getHotels
 hotelRouters
   //.all('/*', authenticateToken)
-  .get('/hotels', getTest)
+  .get('/', getHotels)
 
 export { hotelRouters };
