@@ -12,7 +12,7 @@ export async function getHotels(req: AuthenticatedRequest, res: Response) {
   await hotelsService.getAllHotels();
 
  
-  return res.status(httpStatus.OK)
+  return res.sendStatus(httpStatus.OK)
 
   // const enrollmentWithAddress = await enrollmentsService.getOneWithAddressByUserId(userId);
 
