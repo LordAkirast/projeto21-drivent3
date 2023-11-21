@@ -6,7 +6,7 @@ import { createOrUpdateEnrollmentSchema } from '@/schemas';
 const hotelRouters = Router();
 
 hotelRouters
-  .get('/hotels', getHotels)
   .all('/*', authenticateToken)
+  .get('/hotels', getHotels)
 
 export { hotelRouters };
