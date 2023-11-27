@@ -6,15 +6,6 @@ import { CEP } from '@/protocols';
 import { Prisma } from '@prisma/client';
 import { hotelsService } from '@/services/hotel-service';
 
-export async function getHotels(req: AuthenticatedRequest, res: Response) {
-  const userId = req.userId;
-
-  console.log('teste');
-
-  await hotelsService.getAllHotels(userId); 
-
-  return res.sendStatus(httpStatus.OK);
-}
 
 
 

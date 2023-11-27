@@ -1,218 +1,295 @@
-import { generateCPF, getStates } from '@brazilian-utils/brazilian-utils';
-import faker from '@faker-js/faker';
-import dayjs from 'dayjs';
-import httpStatus from 'http-status';
-import * as jwt from 'jsonwebtoken';
-import supertest from 'supertest';
-
-import { createEnrollmentWithAddress, createUser, createAddressWithCEP as createAddressWithCEP } from '../factories';
-import { cleanDb, generateValidToken } from '../helpers';
+import app, { init } from "@/app";
+import { cleanDb, generateValidToken } from "../helpers";
+import supertest from "supertest";
 import { prisma } from '@/config';
-import app, { init } from '@/app';
+import httpStatus from 'http-status';
+import faker from '@faker-js/faker';
+import { createEnrollmentWithAddress, createPayment, createTicket, createTicketType, createUser } from "../factories";
+import * as jwt from 'jsonwebtoken';
+import { TicketStatus } from "@prisma/client";
+import { createHotel, createRoomWithHotelId } from "../factories/hotels-factory";
 
 beforeAll(async () => {
-  await init();
-  await cleanDb();
+    await init();
+});
+
+beforeEach(async () => {
+    await cleanDb();
 });
 
 const server = supertest(app);
 
 describe('GET /hotels', () => {
-  it('should respond with status 401 if no token is given', async () => {
-    const response = await server.get('/hotels');
+    it('should respond with status 401 if no token is given', async () => {
+        const response = await server.get('/hotels');
 
-    expect(response.status).toBe(httpStatus.UNAUTHORIZED);
-  });
-
-  it('should respond with status 401 if given token is not valid', async () => {
-    const token = faker.lorem.word();
-
-    const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
-
-    expect(response.status).toBe(httpStatus.UNAUTHORIZED);
-  });
-
-  it('should respond with status 401 if there is no session for given token', async () => {
-    const userWithoutSession = await createUser();
-    const token = jwt.sign({ userId: userWithoutSession.id }, process.env.JWT_SECRET);
-
-    const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
-
-    expect(response.status).toBe(httpStatus.UNAUTHORIZED);
-  });
-
-  describe('when token is valid', () => {
-    it('should respond with status 404 when there is no enrollment for given user', async () => {
-      const token = await generateValidToken();
-
-      const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toBe(httpStatus.NOT_FOUND);
+        expect(response.status).toBe(httpStatus.UNAUTHORIZED);
     });
 
-    it('should respond with status 200 and enrollment data with address when there is a enrollment for given user', async () => {
-      const user = await createUser();
-      const enrollment = await createEnrollmentWithAddress(user);
-      const token = await generateValidToken(user);
+    it('should respond with status 401 if given token is not valid', async () => {
+        const token = faker.lorem.word();
 
-      const response = await server.get('/enrollments').set('Authorization', `Bearer ${token}`);
+        const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
 
-      expect(response.status).toBe(httpStatus.OK);
-      expect(response.body).toEqual({
-        id: enrollment.id,
-        name: enrollment.name,
-        cpf: enrollment.cpf,
-        birthday: enrollment.birthday.toISOString(),
-        phone: enrollment.phone,
-        address: {
-          id: enrollment.Address[0].id,
-          cep: enrollment.Address[0].cep,
-          street: enrollment.Address[0].street,
-          city: enrollment.Address[0].city,
-          state: enrollment.Address[0].state,
-          number: enrollment.Address[0].number,
-          neighborhood: enrollment.Address[0].neighborhood,
-          addressDetail: enrollment.Address[0].addressDetail,
-        },
-      });
-    });
-  });
-});
-
-describe('GET /enrollments/cep', () => {
-  it('should respond with status 200 when CEP is valid', async () => {
-    const response = await server.get('/enrollments/cep?cep=04538132');
-    const address = createAddressWithCEP();
-
-    expect(response.status).toBe(httpStatus.OK);
-    expect(response.body).toEqual(address);
-  });
-
-  it('should respond with status 400 when CEP is invalid', async () => {
-    const response = await server.get('/enrollments/cep?cep=00');
-    expect(response.status).toBe(httpStatus.BAD_REQUEST);
-  });
-});
-
-describe('POST /enrollments', () => {
-  it('should respond with status 401 if no token is given', async () => {
-    const response = await server.post('/enrollments');
-
-    expect(response.status).toBe(httpStatus.UNAUTHORIZED);
-  });
-
-  it('should respond with status 401 if given token is not valid', async () => {
-    const token = faker.lorem.word();
-
-    const response = await server.post('/enrollments').set('Authorization', `Bearer ${token}`);
-
-    expect(response.status).toBe(httpStatus.UNAUTHORIZED);
-  });
-
-  it('should respond with status 401 if there is no session for given token', async () => {
-    const userWithoutSession = await createUser();
-    const token = jwt.sign({ userId: userWithoutSession.id }, process.env.JWT_SECRET);
-
-    const response = await server.post('/enrollments').set('Authorization', `Bearer ${token}`);
-
-    expect(response.status).toBe(httpStatus.UNAUTHORIZED);
-  });
-
-  describe('when token is valid', () => {
-    it('should respond with status 400 when body is not present', async () => {
-      const token = await generateValidToken();
-
-      const response = await server.post('/enrollments').set('Authorization', `Bearer ${token}`);
-
-      expect(response.status).toBe(httpStatus.BAD_REQUEST);
+        expect(response.status).toBe(httpStatus.UNAUTHORIZED);
     });
 
-    it('should respond with status 400 when body is not valid', async () => {
-      const token = await generateValidToken();
-      const body = { [faker.lorem.word()]: faker.lorem.word() };
+    it('should respond with status 401 if there is no session for given token', async () => {
+        const userWithoutSession = await createUser();
+        const token = jwt.sign({ userId: userWithoutSession.id }, process.env.JWT_SECRET);
 
-      const response = await server.post('/enrollments').set('Authorization', `Bearer ${token}`).send(body);
+        const response = await server.get('/hotels').set('Authorization', `Bearer ${token}`);
 
-      expect(response.status).toBe(httpStatus.BAD_REQUEST);
+        expect(response.status).toBe(httpStatus.UNAUTHORIZED);
     });
 
-    describe('when body is valid', () => {
-      const generateValidBody = () => ({
-        name: faker.name.findName(),
-        cpf: generateCPF(),
-        birthday: faker.date.past().toISOString(),
-        phone: '(21) 98999-9999',
-        address: {
-          cep: '90830-563',
-          street: faker.address.streetName(),
-          city: faker.address.city(),
-          number: faker.datatype.number().toString(),
-          state: faker.helpers.arrayElement(getStates()).code,
-          neighborhood: faker.address.secondaryAddress(),
-          addressDetail: faker.lorem.sentence(),
-        },
-      });
+    describe('when token is valid', () => {
+        it('should respond with status 404 when user has no enrollment', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
 
-      it('should respond with status 201 and create new enrollment if there is not any', async () => {
-        const body = generateValidBody();
-        const token = await generateValidToken();
+            const { status } = await server.get("/hotels").set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.NOT_FOUND)
+        })
 
-        const response = await server.post('/enrollments').set('Authorization', `Bearer ${token}`).send(body);
+        it('should respond with status 404 when user has enrollment but no ticket', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            await createEnrollmentWithAddress(user)
 
-        expect(response.status).toBe(httpStatus.OK);
-        const enrollment = await prisma.enrollment.findFirst({ where: { cpf: body.cpf } });
-        expect(enrollment).toBeDefined();
-      });
+            const { status } = await server.get("/hotels").set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.NOT_FOUND)
+        })
 
-      it('should respond with status 200 and update enrollment if there is one already', async () => {
-        const user = await createUser();
-        const enrollment = await createEnrollmentWithAddress(user);
-        const body = generateValidBody();
-        const token = await generateValidToken(user);
+        it('should respond with status 404 when there are no hotels', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(false, true);
+            const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID)
+            await createPayment(ticket.id, ticketType.price)
 
-        const response = await server.post('/enrollments').set('Authorization', `Bearer ${token}`).send(body);
+            const { status } = await server.get("/hotels").set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.NOT_FOUND)
+        })
 
-        expect(response.status).toBe(httpStatus.OK);
-        const updatedEnrollment = await prisma.enrollment.findUnique({ where: { userId: user.id } });
-        const addresses = await prisma.address.findMany({ where: { enrollmentId: enrollment.id } });
-        expect(addresses.length).toEqual(1);
-        expect(updatedEnrollment).toBeDefined();
-        expect(updatedEnrollment).toEqual(
-          expect.objectContaining({
-            name: body.name,
-            cpf: body.cpf,
-            birthday: dayjs(body.birthday).toDate(),
-            phone: body.phone,
-          }),
-        );
-      });
+        it('should respond with status 402 when user ticket is remote', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(true, false);
+            const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID)
+            await createPayment(ticket.id, ticketType.price)
+
+            const { status } = await server.get("/hotels").set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.PAYMENT_REQUIRED)
+        })
+
+        it('should respond with status 402 when ticket is not paid', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(false, true);
+            await createTicket(enrollment.id, ticketType.id, TicketStatus.RESERVED)
+
+            const { status } = await server.get("/hotels").set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.PAYMENT_REQUIRED)
+        })
+
+        it('should respond with status 402 when ticket doenst include hotel', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(false, false);
+            const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID)
+            await createPayment(ticket.id, ticketType.price)
+
+            const { status } = await server.get("/hotels").set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.PAYMENT_REQUIRED)
+        })
+
+        it('should respond with status 200 and a list of hotels', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(false, true);
+            const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID)
+            await createPayment(ticket.id, ticketType.price)
+            const createdHotel = await createHotel()
+
+            const { status, body } = await server.get("/hotels").set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.OK)
+            expect(body).toEqual([
+                {
+                    id: createdHotel.id,
+                    name: createdHotel.name,
+                    image: createdHotel.image,
+                    createdAt: createdHotel.createdAt.toISOString(),
+                    updatedAt: createdHotel.updatedAt.toISOString(),
+                }
+            ])
+        })
+    })
+})
+
+describe('GET /hotels/:holelId', () => {
+    it('should respond with status 401 if no token is given', async () => {
+        const response = await server.get('/hotels/1');
+
+        expect(response.status).toBe(httpStatus.UNAUTHORIZED);
     });
 
-    describe('when body is invalid', () => {
-      const generateInvalidBody = () => ({
-        name: faker.name.findName(),
-        cpf: generateCPF(),
-        birthday: faker.date.past().toISOString(),
-        phone: '(21) 98999-9999',
-        address: {
-          cep: '0',
-          street: faker.address.streetName(),
-          city: faker.address.city(),
-          number: faker.datatype.number().toString(),
-          state: faker.helpers.arrayElement(getStates()).code,
-          neighborhood: faker.address.secondaryAddress(),
-          addressDetail: faker.lorem.sentence(),
-        },
-      });
+    it('should respond with status 401 if given token is not valid', async () => {
+        const token = faker.lorem.word();
 
-      it('should respond with status 400 and create new enrollment if there is not any', async () => {
-        const body = generateInvalidBody();
-        const token = await generateValidToken();
+        const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
 
-        const response = await server.post('/enrollments').set('Authorization', `Bearer ${token}`).send(body);
-
-        expect(response.status).toBe(httpStatus.BAD_REQUEST);
-      });
+        expect(response.status).toBe(httpStatus.UNAUTHORIZED);
     });
-  });
-});
+
+    it('should respond with status 401 if there is no session for given token', async () => {
+        const userWithoutSession = await createUser();
+        const token = jwt.sign({ userId: userWithoutSession.id }, process.env.JWT_SECRET);
+
+        const response = await server.get('/hotels/1').set('Authorization', `Bearer ${token}`);
+
+        expect(response.status).toBe(httpStatus.UNAUTHORIZED);
+    });
+
+    describe('when token is valid', () => {
+        it('should respond with status 404 when user has no enrollment', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const createdHotel = await createHotel()
+            const room = await createRoomWithHotelId(createdHotel.id)
+
+            const { status } = await server.get(`/hotels/${createdHotel.id}`).set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.NOT_FOUND)
+        })
+
+        it('should respond with status 404 when user has enrollment but no ticket', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            await createEnrollmentWithAddress(user)
+            const createdHotel = await createHotel()
+            const room = await createRoomWithHotelId(createdHotel.id)
+
+            const { status } = await server.get(`/hotels/${createdHotel.id}`).set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.NOT_FOUND)
+        })
+
+        it('should respond with status 404 when hotel id does not exist', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(false, true);
+            const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID)
+            await createPayment(ticket.id, ticketType.price)
+            const createdHotel = await createHotel()
+
+            await prisma.hotel.delete({
+                where: {
+                    id: createdHotel.id
+                }
+            })
+
+            const { status } = await server.get(`/hotels/${createdHotel.id}`).set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.NOT_FOUND)
+        })
+
+        it('should respond with status 402 when user ticket is remote', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(true, false);
+            const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID)
+            await createPayment(ticket.id, ticketType.price)
+            const createdHotel = await createHotel()
+            const room = await createRoomWithHotelId(createdHotel.id)
+
+            const { status } = await server.get(`/hotels/${createdHotel.id}`).set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.PAYMENT_REQUIRED)
+        })
+
+        it('should respond with status 402 when ticket is not paid', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(false, true);
+            await createTicket(enrollment.id, ticketType.id, TicketStatus.RESERVED)
+            const createdHotel = await createHotel()
+            const room = await createRoomWithHotelId(createdHotel.id)
+
+            const { status } = await server.get(`/hotels/${createdHotel.id}`).set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.PAYMENT_REQUIRED)
+        })
+
+        it('should respond with status 402 when ticket doenst include hotel', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(false, false);
+            const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID)
+            await createPayment(ticket.id, ticketType.price)
+            const createdHotel = await createHotel()
+            const room = await createRoomWithHotelId(createdHotel.id)
+
+            const { status } = await server.get(`/hotels/${createdHotel.id}`).set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.PAYMENT_REQUIRED)
+        })
+
+        it('should respond with status 200 and hotel with rooms', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(false, true);
+            const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID)
+            await createPayment(ticket.id, ticketType.price)
+            const createdHotel = await createHotel()
+            const room = await createRoomWithHotelId(createdHotel.id)
+
+            const { status, body } = await server.get(`/hotels/${createdHotel.id}`).set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.OK)
+            expect(body).toEqual({
+                id: createdHotel.id,
+                name: createdHotel.name,
+                image: createdHotel.image,
+                createdAt: createdHotel.createdAt.toISOString(),
+                updatedAt: createdHotel.updatedAt.toISOString(),
+                Rooms: [
+                    {
+                        id: room.id,
+                        name: room.name,
+                        capacity: room.capacity,
+                        hotelId: room.hotelId,
+                        createdAt: room.createdAt.toISOString(),
+                        updatedAt: room.updatedAt.toISOString(),
+                    }
+                ]
+            }
+            )
+        })
+
+        it('should respond with status 200 and hotel with no rooms', async () => {
+            const user = await createUser();
+            const token = await generateValidToken(user);
+            const enrollment = await createEnrollmentWithAddress(user);
+            const ticketType = await createTicketType(false, true);
+            const ticket = await createTicket(enrollment.id, ticketType.id, TicketStatus.PAID)
+            await createPayment(ticket.id, ticketType.price)
+            const createdHotel = await createHotel()
+
+            const { status, body } = await server.get(`/hotels/${createdHotel.id}`).set('Authorization', `Bearer ${token}`)
+            expect(status).toBe(httpStatus.OK)
+            expect(body).toEqual({
+                id: createdHotel.id,
+                name: createdHotel.name,
+                image: createdHotel.image,
+                createdAt: createdHotel.createdAt.toISOString(),
+                updatedAt: createdHotel.updatedAt.toISOString(),
+                Rooms: []
+            }
+            )
+        })
+    })
+})

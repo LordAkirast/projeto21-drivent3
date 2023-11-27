@@ -5,23 +5,7 @@ import { addressRepository, CreateAddressParams, enrollmentRepository, CreateEnr
 import { exclude } from '@/utils/prisma-utils';
 import { invalidCepError } from '@/errors/invalid-cep-error';
 import { AddressEnrollment } from '@/protocols';
-import { HotelEnrollment } from '@/protocols';
 import { hotelRepository } from '@/repositories/hotel-repository';
-
-async function getAllHotels(userId: number) {
-  
-  const enrollment = await enrollmentRepository.findEnrollmentByUserId(userId);
-
-  if (!enrollment) {
-    
-    throw new Error('Usuário não encontrado');
-  }
-
-  // Continue com a lógica para obter todos os hotéis
-  const allHotels = await hotelRepository.findAllHotels();
-
-  return allHotels;
-}
 
 
 async function getOneWithAddressByUserId(userId: number): Promise<GetOneWithAddressByUserIdResult> {
@@ -62,6 +46,5 @@ export type CreateOrUpdateEnrollmentWithAddress = CreateEnrollmentParams & {
 };
 
 export const hotelsService = {
-  getAllHotels,
   getOneWithAddressByUserId,
 };

@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { authenticateToken, validateBody } from '@/middlewares';
-import { getHotels } from '@/controllers/hotel-controller';
 import { createOrUpdateEnrollmentSchema } from '@/schemas';
 import httpStatus, { OK } from 'http-status';
 import { JwtPayload } from 'jsonwebtoken';
@@ -13,6 +12,5 @@ function getTest() {
 }
 hotelRouters
   .all('/*', authenticateToken)
-  .get('/', getHotels)
 
 export { hotelRouters };
