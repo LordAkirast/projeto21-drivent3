@@ -12,9 +12,9 @@ async function validateUserBooking(userId: number) {
 
   const type = ticket.TicketType;
 
-  // if (ticket.status === TicketStatus.RESERVED || type.isRemote || !type.includesHotel) {
-  //   throw cannotListHotelsError();
-  // }
+  if (ticket.status === TicketStatus.RESERVED || type.isRemote || !type.includesHotel) {
+    throw cannotListHotelsError();
+  }
 }
 
 async function getHotels(userId: number) {
