@@ -24,7 +24,7 @@ export async function getBooking(req: AuthenticatedRequest, res: Response) {
 
     return res.status(httpStatus.OK).json(responseData);
   } catch (error) {
-    console.error('Erro ao obter a reserva:', error);
+    console.error('Erro ao obter a reserve:', error);
     return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
       error: 'Erro interno do servidor ao obter a reserva.',
     });
