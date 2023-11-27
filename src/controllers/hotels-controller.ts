@@ -31,6 +31,13 @@ export async function getBooking(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export async function getHotels(req: AuthenticatedRequest, res: Response) {
+  const { userId } = req;
+
+  const hotels = await hotelsService.getHotels(userId);
+  res.status(httpStatus.OK).send(hotels);
+}
+
 export async function getHotelsWithRooms(req: AuthenticatedRequest, res: Response) {
   const { userId } = req;
   const hotelId = Number(req.params.hotelId);
