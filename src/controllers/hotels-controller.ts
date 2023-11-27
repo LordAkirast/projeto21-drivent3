@@ -6,9 +6,9 @@ import { hotelsService } from '@/services';
 export async function getBooking(req: AuthenticatedRequest, res: Response) {
   try {
     const { userId } = req;
-
+    console.log('passou até aqui getBooking 1 ')
     const booking = await hotelsService.getBookingWithRoomDetails(userId);
-
+    console.log('passou até aqui getBooking')
     if (!booking) {
       return res.status(httpStatus.NOT_FOUND).json({
         error: 'Usuário sem reserva.',
